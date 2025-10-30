@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    /* ===== Basic Options ===== */
+    "target": "ES2021",
+    "module": "commonjs",
+    "lib": ["ES2021", "ESNext.AsyncIterable"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "sourceMap": true,
+    "noEmit": false,
+    "pretty": true,
+    "resolveJsonModule": true,
+
+    /* ===== Strict Type-Checking ===== */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": false,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+
+    /* ===== Module Resolution ===== */
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+
+
+    /* ===== Decorators (TypeORM) ===== */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    /* ===== Type Roots ===== */
+    "typeRoots": ["./src/types", "./node_modules/@types"],
+
+    /* ===== Included @types packages (empty = disable automatic inclusion) ===== */
+    "types": []
+  },
+
+  /* ===== Project Structure ===== */
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "tests"]
+}
