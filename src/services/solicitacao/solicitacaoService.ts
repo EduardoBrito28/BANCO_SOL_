@@ -352,4 +352,78 @@ export class SolicitacaoService {
         return Boolean(valor);
     }
 
+    async obterEstatisticas(): Promise<any> {
+        const total = await this.solicitacaoRepo.count();
+        
+        const solicitacoesFeitas = total; // Total de solicitações criadas
+        
+        const solicitacoesRecebidas = await this.solicitacaoRepo.count({
+            where: [
+                { isAdminDestino: true },
+                { isDirectorDestino: true },
+                { isDirecaoDestino: true }
+            ]
+        });
+
+        const porStatus = await this.solicitacaoRepo
+            .createQueryBuilder('solicitacao')
+            .select('CASE WHEN solicitacao.is_concluida = true THEN \'Concluída\' ELSE \'Pendente\' END', 'status')
+            .addSelect('COUNT(solicitacao.id)', 'quantidade')
+            .groupBy('solicitacao.is_concluida')
+            .getRawMany();
+
+        const porTipo = await this.solicitacaoRepo
+            .createQueryBuilder('solicitacao')
+            .leftJoin('solicitacao.tipoSolicitacao', 'tipo')
+            .select('COALESCE(tipo.nome, \'Sem Tipo\')', 'tipo')
+            .addSelect('COUNT(solicitacao.id)', 'quantidade')
+            .groupBy('tipo.id, tipo.nome')
+            .orderBy('COUNT(solicitacao.id)', 'DESC')
+            .limit(5)
+            .getRawMany();
+
+        const recebidasPorDestino = await this.solicitacaoRepo
+            .createQueryBuilder('solicitacao')
+            .select('CASE WHEN solicitacao.is_admin_destino = true THEN \'Administrador\' WHEN solicitacao.is_director_destino = true THEN \'Diretor\' WHEN solicitacao.is_direcao_destino = true THEN \'Direção\' ELSE \'Outro\' END', 'destino')
+            .addSelect('COUNT(solicitacao.id)', 'quantidade')
+            .where('solicitacao.is_admin_destino = true OR solicitacao.is_director_destino = true OR solicitacao.is_direcao_destino = true')
+            .groupBy('solicitacao.is_admin_destino, solicitacao.is_director_destino, solicitacao.is_direcao_destino')
+            .getRawMany();
+
+        // Solicitações dos últimos 30 dias por dia
+        const dataLimite = new Date();
+        dataLimite.setDate(dataLimite.getDate() - 30);
+        
+        const porDia = await this.solicitacaoRepo
+            .createQueryBuilder('solicitacao')
+            .select('DATE(solicitacao.created_at)', 'dia')
+            .addSelect('COUNT(solicitacao.id)', 'quantidade')
+            .where('solicitacao.created_at >= :dataLimite', { dataLimite })
+            .groupBy('DATE(solicitacao.created_at)')
+            .orderBy('DATE(solicitacao.created_at)', 'ASC')
+            .getRawMany();
+
+        return {
+            total: solicitacoesFeitas,
+            solicitacoesFeitas,
+            solicitacoesRecebidas,
+            porStatus: porStatus.map(item => ({
+                status: item.status,
+                quantidade: parseInt(item.quantidade)
+            })),
+            porTipo: porTipo.map(item => ({
+                tipo: item.tipo,
+                quantidade: parseInt(item.quantidade)
+            })),
+            recebidasPorDestino: recebidasPorDestino.map(item => ({
+                destino: item.destino,
+                quantidade: parseInt(item.quantidade)
+            })),
+            porDia: porDia.map(item => ({
+                dia: item.dia,
+                quantidade: parseInt(item.quantidade)
+            }))
+        };
+    }
+
 }

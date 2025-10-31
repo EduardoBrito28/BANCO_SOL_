@@ -14,6 +14,22 @@ const solicitacaoAll = new ListagemSolicitacaoServicos();
 const fluxoProcessoSolicitacaoService = new FluxoProcessoSolicitacaoService();
 
 export class SolicitacaoController {
+    async obterEstatisticas(req: Request, res: Response) {
+        try {
+            const estatisticas = await solicitacaoService.obterEstatisticas();
+            res.json({
+                success: true,
+                data: estatisticas,
+                message: 'Estatísticas de solicitações obtidas com sucesso'
+            });
+        } catch (error) {
+            console.error('Erro ao obter estatísticas de solicitações:', error);
+            res.status(500).json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Erro interno do servidor'
+            });
+        }
+    }
     // ✅ CRIAÇÃO
     async criarSolicitacao(req: Request, res: Response) {
         try {

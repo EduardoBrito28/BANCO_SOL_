@@ -46,8 +46,6 @@ export class UserRepository {
 
         const queryBuilder = this.repository.createQueryBuilder('utilizador')
             .leftJoinAndSelect('utilizador.perfil', 'perfil')
-            .leftJoinAndSelect('utilizador.direcao', 'direcao')
-            .leftJoinAndSelect('utilizador.gabinete', 'gabinete')
             .where('1=1');
 
         // 🔍 Aplicar filtros
@@ -61,12 +59,23 @@ export class UserRepository {
             queryBuilder.andWhere('utilizador.estado = :estado', { estado });
         }
 
+        // Nota: direcaoId e gabineteId não podem ser filtrados diretamente
+        // pois Utilizador não tem relação direta com Direcao ou Gabinete
+        // Eles podem ser filtrados através do perfil se necessário
+        
+        // Filtro por direcao através do perfil (se o perfil tiver departamento com direcao)
         if (direcaoId) {
-            queryBuilder.andWhere('utilizador.direcao.id = :direcaoId', { direcaoId });
+            queryBuilder
+                .leftJoin('perfil.departamento', 'departamento')
+                .leftJoin('departamento.direcao', 'direcao')
+                .andWhere('direcao.id = :direcaoId', { direcaoId });
         }
 
+        // Filtro por gabinete através do perfil
         if (gabineteId) {
-            queryBuilder.andWhere('utilizador.gabinete.id = :gabineteId', { gabineteId });
+            queryBuilder
+                .leftJoin('perfil.gabinete', 'gabinete')
+                .andWhere('gabinete.id = :gabineteId', { gabineteId });
         }
 
         if (perfilId) {

@@ -9,6 +9,7 @@ import requestTypeRoute from './quest-type/request-type.routes';
 import perfil from './utilizador/perfil/perfil';
 import perfilPermissao from './utilizador/perfil/perfil-permissao';
 import departamento from './utilizador/departamento/departamento';
+import direcao from './utilizador/direcao/direcao';
 import modulo from './utilizador/modulo';
 import acao from './utilizador/acao';
 import gabinete from './utilizador/gabinete/gabinete';
@@ -21,6 +22,7 @@ users(router);
 perfil(router)
 perfilPermissao(router)
 departamento(router);
+direcao(router);
 modulo(router);
 acao(router)
 solictacaoRoute(router)

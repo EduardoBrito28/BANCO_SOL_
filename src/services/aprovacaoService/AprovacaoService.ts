@@ -162,4 +162,94 @@ export class AprovacaoService {
     async obterStatusAprovacao(solicitacaoId: string): Promise<any> {
         return true
     }
+
+    async obterEstatisticas(): Promise<any> {
+        const totalAprovacoes = await this.aprovacaoRepo.count();
+        
+        // Aprovações por status
+        const porStatus = await this.aprovacaoRepo
+            .createQueryBuilder('aprovacao')
+            .select('aprovacao.status', 'status')
+            .addSelect('COUNT(aprovacao.id)', 'quantidade')
+            .groupBy('aprovacao.status')
+            .getRawMany();
+
+        // Solicitações com destino Admin
+        const solicitacoesRecebidasAdmin = await this.solicitacaoRepo.count({
+            where: { isAdminDestino: true }
+        });
+
+        // Solicitações aprovadas pela Admin (status completed ou admin_approved)
+        const aprovacoesAdmin = await this.aprovacaoRepo.count({
+            where: [
+                { status: StatusAprovacao.APROVADO },
+                { status: StatusAprovacao.ADM_APROVADO }
+            ]
+        });
+
+        // Solicitações rejeitadas pela Admin
+        const rejeicoesAdmin = await this.aprovacaoRepo.count({
+            where: [
+                { status: StatusAprovacao.REJEITADO },
+                { status: StatusAprovacao.ADM_REJEITADO }
+            ]
+        });
+
+        // Solicitações pendentes (com aprovação accept aguardando admin)
+        const solicitacoesPendentesAdmin = await this.solicitacaoRepo
+            .createQueryBuilder('solicitacao')
+            .innerJoin('solicitacao.aprovacoes', 'aprovacao')
+            .where('solicitacao.isAdminDestino = true')
+            .andWhere('aprovacao.status = :status', { status: StatusAprovacao.ACEITE })
+            .getCount();
+
+        // Aprovações por departamento
+        const porDepartamento = await this.aprovacaoRepo
+            .createQueryBuilder('aprovacao')
+            .leftJoin('aprovacao.createdBy', 'createdBy')
+            .leftJoin('createdBy.perfil', 'perfil')
+            .leftJoin('perfil.departamento', 'departamento')
+            .select('COALESCE(departamento.sigla, departamento.nome, \'Sem Departamento\')', 'departamento')
+            .addSelect('COUNT(aprovacao.id)', 'quantidade')
+            .where('departamento.id IS NOT NULL')
+            .groupBy('departamento.id, departamento.sigla, departamento.nome')
+            .orderBy('COUNT(aprovacao.id)', 'DESC')
+            .limit(5)
+            .getRawMany();
+
+        // Aprovações por direção
+        const porDirecao = await this.aprovacaoRepo
+            .createQueryBuilder('aprovacao')
+            .leftJoin('aprovacao.createdBy', 'createdBy')
+            .leftJoin('createdBy.perfil', 'perfil')
+            .leftJoin('perfil.departamento', 'departamento')
+            .leftJoin('departamento.direcao', 'direcao')
+            .select('COALESCE(direcao.sigla, direcao.nome, \'Sem Direção\')', 'direcao')
+            .addSelect('COUNT(aprovacao.id)', 'quantidade')
+            .where('direcao.id IS NOT NULL')
+            .groupBy('direcao.id, direcao.sigla, direcao.nome')
+            .orderBy('COUNT(aprovacao.id)', 'DESC')
+            .limit(5)
+            .getRawMany();
+
+        return {
+            totalAprovacoes,
+            solicitacoesRecebidasAdmin,
+            aprovacoesAdmin,
+            rejeicoesAdmin,
+            solicitacoesPendentesAdmin,
+            porStatus: porStatus.map(item => ({
+                status: item.status,
+                quantidade: parseInt(item.quantidade)
+            })),
+            porDepartamento: porDepartamento.map(item => ({
+                departamento: item.departamento,
+                quantidade: parseInt(item.quantidade)
+            })),
+            porDirecao: porDirecao.map(item => ({
+                direcao: item.direcao,
+                quantidade: parseInt(item.quantidade)
+            }))
+        };
+    }
 }

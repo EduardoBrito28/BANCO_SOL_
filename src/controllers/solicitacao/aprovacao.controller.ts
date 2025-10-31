@@ -100,4 +100,25 @@ export class AprovacaoController {
             });
         }
     }
+
+    /**
+     * Obter estatísticas de aprovações
+     */
+    obterEstatisticas = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const estatisticas = await this.aprovacaoService.obterEstatisticas();
+
+            res.status(200).json({
+                success: true,
+                data: estatisticas,
+                message: 'Estatísticas de aprovações obtidas com sucesso'
+            });
+        } catch (error) {
+            console.error('Erro ao obter estatísticas de aprovações:', error);
+            res.status(500).json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Erro interno do servidor'
+            });
+        }
+    }
 }

@@ -9,6 +9,7 @@ export default (app: Router) => {
     router.put('/:id', solicitacaoController.atualizarSolicitacao);
     router.post('/', solicitacaoController.criarSolicitacao);
     router.get('/', solicitacaoController.listarSolicitacoesFiltros);
+    router.get('/estatisticas', solicitacaoController.obterEstatisticas);
     router.get('/:id', solicitacaoController.obterSolicitacao);
     router.delete('/:id', solicitacaoController.excluirSolicitacao);
 

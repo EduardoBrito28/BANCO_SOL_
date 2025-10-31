@@ -49,8 +49,6 @@ export class UserService {
 
         const queryBuilder = this.userRepository.createQueryBuilder('utilizador')
             .leftJoinAndSelect('utilizador.perfil', 'perfil')
-            .leftJoinAndSelect('utilizador.direcao', 'direcao')
-            .leftJoinAndSelect('utilizador.gabinete', 'gabinete')
             .where('1=1');
 
         // 🔍 Aplicar filtros
@@ -64,12 +62,23 @@ export class UserService {
             queryBuilder.andWhere('utilizador.estado = :estado', { estado });
         }
 
+        // Nota: direcaoId e gabineteId não podem ser filtrados diretamente
+        // pois Utilizador não tem relação direta com Direcao ou Gabinete
+        // Eles podem ser filtrados através do perfil se necessário
+        
+        // Filtro por direcao através do perfil (se o perfil tiver departamento com direcao)
         if (direcaoId) {
-            queryBuilder.andWhere('utilizador.direcao.id = :direcaoId', { direcaoId });
+            queryBuilder
+                .leftJoin('perfil.departamento', 'departamento')
+                .leftJoin('departamento.direcao', 'direcao')
+                .andWhere('direcao.id = :direcaoId', { direcaoId });
         }
 
+        // Filtro por gabinete através do perfil
         if (gabineteId) {
-            queryBuilder.andWhere('utilizador.gabinete.id = :gabineteId', { gabineteId });
+            queryBuilder
+                .leftJoin('perfil.gabinete', 'gabinete')
+                .andWhere('gabinete.id = :gabineteId', { gabineteId });
         }
 
         if (perfilId) {
@@ -112,7 +121,7 @@ export class UserService {
     public async obterUtilizadorPorId(id: string): Promise<UtilizadorDTO> {
         const utilizador = await this.userRepository.findOne({
             where: { id },
-            relations: ['perfil', 'direcao', 'gabinete', 'perfil.permissoes', 'perfil.permissoes.modulo', 'perfil.permissoes.acao']
+            relations: ['perfil', 'perfil.departamento', 'perfil.departamento.direcao', 'perfil.gabinete', 'perfil.permissoes', 'perfil.permissoes.modulo', 'perfil.permissoes.acao']
         });
 
         if (!utilizador) {
@@ -255,6 +264,11 @@ export class UserService {
 
         // Buscar entidades relacionadas se fornecidas
         const updateData: any = { ...dto };
+
+        // Remover IDs que serão convertidos para relações
+        delete updateData.direcaoId;
+        delete updateData.gabineteId;
+        delete updateData.perfilId;
 
         if (dto.direcaoId) {
             updateData.direcao = await this.direcaoRepository.findOne({ where: { id: dto.direcaoId } });
@@ -402,7 +416,7 @@ export class UserService {
     public async listarPorPerfil(perfilId: string): Promise<UtilizadorListagemDTO[]> {
         const utilizadores = await this.userRepository.find({
             where: { perfil: { id: perfilId } },
-            relations: ['direcao', 'gabinete'],
+            relations: ['perfil', 'perfil.departamento', 'perfil.departamento.direcao', 'perfil.gabinete'],
             order: { nome: 'ASC' }
         });
 
@@ -428,10 +442,12 @@ export class UserService {
 
         const porDirecao = await this.userRepository
             .createQueryBuilder('utilizador')
-            .leftJoin('utilizador.direcao', 'direcao')
+            .leftJoin('utilizador.perfil', 'perfil')
+            .leftJoin('perfil.departamento', 'departamento')
+            .leftJoin('departamento.direcao', 'direcao')
             .select('direcao.nome', 'direcao')
             .addSelect('COUNT(utilizador.id)', 'quantidade')
-            .where('utilizador.direcao IS NOT NULL')
+            .where('direcao.id IS NOT NULL')
             .groupBy('direcao.nome')
             .getRawMany();
 
@@ -440,6 +456,27 @@ export class UserService {
             porEstado,
             porDirecao
         };
+    }
+
+    // ✅ BUSCAR UTILIZADORES POR DIREÇÃO (através do perfil -> departamento -> direcao)
+    public async findByDirecao(direcaoId: string): Promise<Utilizador[]> {
+        return await this.userRepository
+            .createQueryBuilder('utilizador')
+            .leftJoinAndSelect('utilizador.perfil', 'perfil')
+            .leftJoin('perfil.departamento', 'departamento')
+            .leftJoin('departamento.direcao', 'direcao')
+            .where('direcao.id = :direcaoId', { direcaoId })
+            .getMany();
+    }
+
+    // ✅ BUSCAR UTILIZADORES POR DEPARTAMENTO (através do perfil -> departamento)
+    public async findByDepartamento(departamentoId: string): Promise<Utilizador[]> {
+        return await this.userRepository
+            .createQueryBuilder('utilizador')
+            .leftJoinAndSelect('utilizador.perfil', 'perfil')
+            .leftJoin('perfil.departamento', 'departamento')
+            .where('departamento.id = :departamentoId', { departamentoId })
+            .getMany();
     }
 
     // ✅ VERIFICAR SE EMAIL EXISTE

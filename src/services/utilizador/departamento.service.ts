@@ -4,7 +4,15 @@ import { DepartamentoRepository } from "../../repositories/user/departamento.rep
 export class DepartamentoService {
   async listar(): Promise<Departamento[]> {
     return DepartamentoRepository.find({
-      relations: ["direcao","modulos"],
+      relations: ["direcao", "modulos"],
+      order: { createdAt: "DESC" },
+    });
+  }
+
+  async listarPorDirecao(direcaoId: string): Promise<Departamento[]> {
+    return DepartamentoRepository.find({
+      where: { direcao: { id: direcaoId } },
+      relations: ["direcao", "modulos"],
       order: { createdAt: "DESC" },
     });
   }

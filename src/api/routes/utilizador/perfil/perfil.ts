@@ -9,6 +9,7 @@ const controller = new PerfilController();
 export default (app: Router) => {
     app.use('/perfil', authenticate, router); // prefixo geral
     router.get("/", controller.listar);
+    router.get("/estatisticas", controller.obterEstatisticas);
     router.get("/:id", controller.buscar);
     router.post("/", controller.criar);
     router.put("/:id", controller.atualizar);

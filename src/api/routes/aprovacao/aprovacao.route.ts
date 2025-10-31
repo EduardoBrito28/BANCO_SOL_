@@ -11,5 +11,5 @@ export default (app: Router) => {
     router.post('/', aprovacaoController.processarAprovacao);
     router.get('/', aprovacaoController.listarAprovacoes);
     router.get('/my-request', () => { console.log("Aprovação aqui") });
-    router.get('/estatisticas', () => console.log("Estatistica"));
+    router.get('/estatisticas', aprovacaoController.obterEstatisticas);
 }

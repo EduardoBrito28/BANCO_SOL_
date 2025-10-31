@@ -5,8 +5,24 @@ const service = new DepartamentoService();
 
 export class DepartamentoController {
   async listar(req: Request, res: Response) {
-    const departamentos = await service.listar();
-    return res.json(departamentos);
+    try {
+      const direcaoId = req.query.direcao as string | undefined;
+      const departamentos = direcaoId 
+        ? await service.listarPorDirecao(direcaoId)
+        : await service.listar();
+      
+      return res.json({
+        success: true,
+        data: departamentos,
+        message: 'Departamentos listados com sucesso',
+      });
+    } catch (error) {
+      console.error('Erro ao listar departamentos:', error);
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro interno do servidor',
+      });
+    }
   }
 
   async buscar(req: Request, res: Response) {
